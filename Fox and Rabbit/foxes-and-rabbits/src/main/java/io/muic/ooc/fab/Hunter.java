@@ -1,27 +1,26 @@
 package io.muic.ooc.fab;
 
-import java.util.List;
 import java.util.Iterator;
+import java.util.List;
 
+public class Hunter extends Animal {
 
-public class Fox extends Animal {
-
-    private int foodLevel;
-
+    /**
+     * Create a Hunter. A Hunter can be created as a new born (age zero and not
+     * hungry) or with a random age and food level.
+     *
+     * @param randomAge If true, the fox will have random age and hunger level.
+     * @param field     The field currently occupied.
+     * @param location  The location within the field.
+     */
     @Override
     public void init(boolean randomAge, Field field, Location location) {
         super.init(randomAge, field, location);
-        foodLevel = RANDOM.nextInt(AnimalType.RABBIT.getFoodValue());
-    }
-
-    @Override
-    protected int getMaxAge() {
-        return 150;
     }
 
     @Override
     protected double getBreedingProbability() {
-        return AnimalType.FOX.getBreedingProbability();
+        return  AnimalType.HUNTER.getBreedingProbability();
     }
 
     @Override
@@ -31,7 +30,7 @@ public class Fox extends Animal {
 
     @Override
     protected int getBreedingAge() {
-        return 15;
+        return 80;
     }
 
     @Override
@@ -43,36 +42,17 @@ public class Fox extends Animal {
         return newLocation;
     }
 
-    /**
-     * This is what the fox does most of the time: it hunts for rabbits. In the
-     * process, it might breed, die of hunger, or die of old age.
-     *
-     * @param newAnimals A list to return newly born foxes
-     */
+    @Override
+    protected int getMaxAge() {
+        return Integer.MAX_VALUE;
+    }
+
     @Override
     public void act(List<AnimalProperties> newAnimals) {
-        incrementHunger();
         super.act(newAnimals);
     }
 
-    /**
-     * Make this fox more hungry. This could result in the fox's death.
-     */
-    public void incrementHunger() {
-        foodLevel--;
-        if (foodLevel <= 0) {
-            setDead();
-        }
-    }
-
-    /**
-     * Look for rabbits adjacent to the current location. Only the first live
-     * rabbit is eaten.
-     *
-     * @return Where food was found, or null if it wasn't.
-     */
-
-    public Location findFood() {
+    private Location findFood() {
         List<Location> adjacent = field.adjacentLocations(getLocation());
         Iterator<Location> it = adjacent.iterator();
         while (it.hasNext()) {
@@ -82,7 +62,21 @@ public class Fox extends Animal {
                 Rabbit rabbit = (Rabbit) animal;
                 if (rabbit.isAlive()) {
                     rabbit.setDead();
-                    foodLevel = AnimalType.RABBIT.getFoodValue();
+                    return where;
+                }
+            }
+            if (animal instanceof Fox) {
+                Fox fox = (Fox) animal;
+                if (fox.isAlive()) {
+                    fox.setDead();
+                    return where;
+                }
+            }
+
+            if (animal instanceof Tiger) {
+                Tiger tiger = (Tiger) animal;
+                if (tiger.isAlive()) {
+                    tiger.setDead();
                     return where;
                 }
             }

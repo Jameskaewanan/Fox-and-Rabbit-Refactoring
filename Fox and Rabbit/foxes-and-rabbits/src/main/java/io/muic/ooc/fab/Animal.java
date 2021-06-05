@@ -3,61 +3,63 @@ package io.muic.ooc.fab;
 import java.util.List;
 import java.util.Random;
 
-public abstract class Animal {
-    // Whether the animal is alive or not.
-    private boolean alive;
+public abstract class Animal implements AnimalProperties {
+    // Characteristics shared by all animals (class variables).
 
-    // The animal's position.
-    protected Location location;
-    // The field occupied.
+    protected static final Random RANDOM = new Random();
+
+    private boolean alive = true;
+
+    private Location location;
+
     protected Field field;
-    // Individual characteristics (instance fields).
-    // The animal's age.
-    protected int age;
 
-    private static final Random RANDOM = new Random();
+    private int age = 0;
 
+    public abstract Location moveToNewLocation();
 
-    /**
-     * Check whether the animal is alive or not.
-     *
-     * @return true if the animal is still alive.
-     */
+    protected abstract int getBreedingAge();
+
+    protected abstract int getMaxLiterSize();
+
+    protected abstract double getBreedingProbability();
+
+    protected abstract int getMaxAge();
+
+    @Override
+    public void init(boolean randomAge, Field field, Location location) {
+        this.field = field;
+        setLocation(location);
+        if (randomAge) {
+            age = RANDOM.nextInt(getMaxAge());
+        }
+    }
+
+    @Override
+    public void act(List<AnimalProperties> newAnimals) {
+        incrementAge();
+        if (isAlive()) {
+            giveBirth(newAnimals);
+
+            Location newLocation = moveToNewLocation();
+
+            if (newLocation != null) {
+                setLocation(newLocation);
+            } else {
+                setDead();
+            }
+        }
+    }
+    // Check whether the animal is alive or not, return true if animal is alive
+    @Override
     public boolean isAlive() {
         return alive;
     }
 
-    public void setAlive(boolean alive) {
-        this.alive = alive;
-    }
-
-    /**
-     * Return the animal's location.
-     *
-     * @return The animal's location.
-     */
-    public Location getLocation() {
-        return location;
-    }
-
-    public abstract int getMaxAge();
-
-    /**
-     * Increase the age. This could result in the animal's death.
-     */
-    protected void incrementAge() {
-        age++;
-        if (age > getMaxAge()) {
-            setDead();
-        }
-    }
-
-
-    /**
-     * Indicate that the animal is no longer alive. It is removed from the field.
-     */
-    protected void setDead() {
-        setAlive(false);
+    // Indicate that the animal is no longer alive, remove from the field
+    @Override
+    public void setDead() {
+        alive = false;
         if (location != null) {
             field.clear(location);
             location = null;
@@ -65,12 +67,15 @@ public abstract class Animal {
         }
     }
 
-    /**
-     * Place the animal at the new location in the given field.
-     *
-     * @param newLocation The animal's new location.
-     */
-    protected void setLocation(Location newLocation) {
+    // Get location of the animal
+    @Override
+    public Location getLocation() {
+        return location;
+    }
+
+    // Place the animal at the new location in the field
+    @Override
+    public void setLocation(Location newLocation) {
         if (location != null) {
             field.clear(location);
         }
@@ -78,53 +83,48 @@ public abstract class Animal {
         field.place(this, newLocation);
     }
 
-    /**
-     * Generate a number representing the number of births, if it can breed.
-     *
-     * @return The number of births (may be zero).
-     */
-    protected int breed() {
-        int births = 0;
-        if (canBreed() && RANDOM.nextDouble() <= getBreedingProbability()) {
-            births = RANDOM.nextInt(getMaxLitterSize()) + 1;
+    // Increment the age of the animal
+    @Override
+    public void incrementAge() {
+        age++;
+        if (age > getMaxAge()) {
+            setDead();
         }
-        return births;
     }
 
-    protected abstract double getBreedingProbability();
-    protected abstract int getMaxLitterSize();
+    // Check whether animal can give birth at this stage, new births will be made into free adjacent location
+    @Override
+    public void giveBirth(List<AnimalProperties> newAnimals) {
 
-    /**
-     * An animal can breed if it has reached the breeding age.
-     *
-     * @return true if the animal can breed, false otherwise.
-     */
-    private boolean canBreed() {
-        return age >= getBreedingAge();
-    }
-
-    protected abstract int getBreedingAge();
-
-    protected abstract Animal createYoung(boolean randomAge, Field field, Location location);
-
-    /**
-     * Check whether or not this animal is to give birth at this step. New
-     * births will be made into free adjacent locations.
-     *
-     * @param newAnimals A list to return newly born animal.
-     */
-    protected void giveBirth(List newAnimals) {
-        // New rabbits are born into adjacent locations.
-        // Get a list of adjacent free locations.
         List<Location> free = field.getFreeAdjacentLocations(location);
         int births = breed();
         for (int b = 0; b < births && free.size() > 0; b++) {
             Location loc = free.remove(0);
-            Animal young = createYoung(false, field, loc);
+
+            Animal young = breedOne(field, loc);
             newAnimals.add(young);
         }
     }
 
-    protected abstract void act(List<Animal> newAnimals);
+    @Override
+    public Animal breedOne(Field field, Location location) {
+        return AnimalFactory.createAnimal(getClass(), field, location);
+    }
+
+    // Generate a births
+    @Override
+    public int breed() {
+        int births = 0;
+        if (canBreed() && RANDOM.nextDouble() <= getBreedingProbability()) {
+            births = RANDOM.nextInt(getMaxLiterSize()) + 1;
+        }
+        return births;
+    }
+
+    // Check if can breed
+    @Override
+    public boolean canBreed() {
+        return age >= getBreedingAge();
+    }
 
 }

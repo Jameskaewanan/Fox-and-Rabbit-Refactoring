@@ -2,9 +2,6 @@ package io.muic.ooc.fab;
 
 
 import io.muic.ooc.fab.view.SimulatorView;
-
-import java.awt.event.WindowEvent;
-import java.awt.event.WindowListener;
 import java.util.Random;
 import java.util.List;
 import java.util.ArrayList;
@@ -18,21 +15,15 @@ public class Simulator {
     private static final int DEFAULT_WIDTH = 120;
     // The default depth of the grid.
     private static final int DEFAULT_DEPTH = 80;
-    // The probability that a fox will be created in any given grid position.
-    private static final double FOX_CREATION_PROBABILITY = 0.02;
-    // The probability that a rabbit will be created in any given position.
-    private static final double RABBIT_CREATION_PROBABILITY = 0.08;
 
     // Lists of animals in the field.
-    private List<Animal> animals;
+    private List<AnimalProperties> animals;
     // The current state of the field.
     private Field field;
     // The current step of the simulation.
     private int step;
     // A graphical view of the simulation.
     private SimulatorView view;
-    // Random generator
-    private static final Random RANDOM = new Random();
 
     /**
      * Construct a simulation field with default size.
@@ -60,9 +51,10 @@ public class Simulator {
 
         // Create a view of the state of each location in the field.
         view = new SimulatorView(depth, width);
-        view.setColor(Rabbit.class, Color.ORANGE);
-        view.setColor(Fox.class, Color.BLUE);
-
+        AnimalType[] animalTypes = AnimalType.values();
+        for (int i = 0; i < animalTypes.length; i++) {
+            view.setColor(animalTypes[i].getAnimalClass(), animalTypes[i].getColor());
+        }
         // Setup a valid starting point.
         reset();
     }
@@ -84,7 +76,7 @@ public class Simulator {
     public void simulate(int numSteps) {
         for (int step = 1; step <= numSteps && view.isViable(field); step++) {
             simulateOneStep();
-            // delay(60);   // uncomment this to run more slowly
+            delay(60);   // uncomment this to run more slowly
         }
     }
 
@@ -95,19 +87,19 @@ public class Simulator {
     public void simulateOneStep() {
         step++;
 
-        // Provide space for newborn animals.
-        List<Animal> newAnimals = new ArrayList<>();
-        // Let all animals act.
-        for (Iterator<Animal> it = animals.iterator(); it.hasNext();) {
-            Animal animal = it.next();
+        // Provide space for newborn rabbits.
+        List<AnimalProperties> newAnimals = new ArrayList<>();
+        // Let all rabbits act.
+        for (Iterator<AnimalProperties> it = animals.iterator(); it.hasNext(); ) {
+            Animal animal = (Animal) it.next();
             animal.act(newAnimals);
             if (!animal.isAlive()) {
                 it.remove();
             }
         }
 
-        // Add the newly born foxes and rabbits to the main lists.
         animals.addAll(newAnimals);
+
         view.showStatus(step, field);
     }
 
@@ -117,32 +109,10 @@ public class Simulator {
     public void reset() {
         step = 0;
         animals.clear();
-        populate();
+        new FieldPopulation().populate(field, animals);
 
         // Show the starting state in the view.
         view.showStatus(step, field);
-    }
-
-    /**
-     * Randomly populate the field with foxes and rabbits.
-     */
-    private void populate() {
-        
-        field.clear();
-        for (int row = 0; row < field.getDepth(); row++) {
-            for (int col = 0; col < field.getWidth(); col++) {
-                if (RANDOM.nextDouble() <= FOX_CREATION_PROBABILITY) {
-                    Location location = new Location(row, col);
-                    Fox fox = new Fox(true, field, location);
-                    animals.add(fox);
-                } else if (RANDOM.nextDouble() <= RABBIT_CREATION_PROBABILITY) {
-                    Location location = new Location(row, col);
-                    Rabbit rabbit = new Rabbit(true, field, location);
-                    animals.add(rabbit);
-                }
-                // else leave the location empty.
-            }
-        }
     }
 
     /**
@@ -156,9 +126,5 @@ public class Simulator {
         } catch (InterruptedException ie) {
             // wake up
         }
-    }
-
-    public static void main(String[] args) {
-        new Simulator().simulate(1000);
     }
 }
